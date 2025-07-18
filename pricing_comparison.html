@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Communication Pricing Comparison</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Teal Accent -->
+    <!-- Application Structure Plan: The application is structured as an interactive dashboard, revised based on user feedback. It starts with an intro, then the cost calculator. The calculator now uses two distinct sliders: one for Monthly Active Users (MAU) which affects the Chat services, and one for Peak Concurrent Users (PCU) which affects Agora Signaling. This accurately reflects the different billing models. The results are shown in prominent cards and a dynamic bar chart for easy visual comparison. This interactive section is followed by updated, detailed reference tables for pricing models and features. This flow guides the user from an accurate, interactive cost estimation to a deeper, detailed comparison. -->
+    <!-- Visualization & Content Choices: 1. Cost Calculator: Report Info -> Pricing formulas for Signaling (PCU-based) and Chat services (MAU-based). Goal -> Compare costs dynamically based on the correct metrics. Viz -> Sliders for MAU and PCU, numeric cards for output, and a bar chart for visual comparison. Interaction -> Sliders update costs and chart in real-time. Justification -> Most direct way for users to explore costs based on the correct, distinct billing models and tiered pricing. Library -> Chart.js for the canvas bar chart. 2. Pricing Table: Report Info -> Free tiers, paid models (PCU/MAU). Goal -> Organize revised reference data. Viz -> HTML Table. Interaction -> None. Justification -> Clear format for structured data comparison. Library -> None. 3. Feature Comparison: Report Info -> Feature lists. Goal -> Compare qualitative value. Viz -> Tabbed HTML content. Interaction -> Tabs reveal features. Justification -> Manages information density. Library -> None. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #0d9488;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #0d9488;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 text-neutral-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-teal-700">Real-Time Communication Pricing Comparison</h1>
+            <p class="mt-2 text-lg text-neutral-600">Interactively estimate and compare costs for leading chat and signaling services.</p>
+        </header>
+
+        <main>
+            <section id="calculator" class="bg-white p-6 md:p-8 rounded-xl shadow-lg mb-12">
+                <div class="mb-8 text-center">
+                     <h2 class="text-2xl font-bold text-neutral-800 mb-2">Cost Estimation Calculator</h2>
+                     <p class="text-neutral-600 max-w-3xl mx-auto">Use the sliders to input your project's expected usage. Note the different billing models: Chat services (Agora Chat, Tencent) are typically billed by <strong class="text-neutral-700">Monthly Active Users (MAU)</strong>, while Agora Signaling 2.x is billed by <strong class="text-neutral-700">Peak Concurrent Users (PCU)</strong>. The costs will update in real-time below.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div>
+                        <label for="mau-slider" class="block text-lg font-medium text-neutral-700">Monthly Active Users (MAU) <span class="text-sm font-normal">(for Chat)</span>: <span id="mau-value" class="font-bold text-teal-600">5,000</span></label>
+                        <input id="mau-slider" type="range" min="0" max="150000" value="5000" class="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-xs text-neutral-500 mt-1">
+                            <span>0</span>
+                            <span>150k</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="pcu-slider" class="block text-lg font-medium text-neutral-700">Peak Concurrent Users (PCU) <span class="text-sm font-normal">(for Signaling)</span>: <span id="pcu-value" class="font-bold text-teal-600">1,500</span></label>
+                        <input id="pcu-slider" type="range" min="0" max="10000" value="1500" step="100" class="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer">
+                         <div class="flex justify-between text-xs text-neutral-500 mt-1">
+                            <span>0</span>
+                            <span>10k</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-center">
+                    <div class="bg-neutral-100 p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-neutral-700">Agora Signaling 2.x</h3>
+                        <p id="agora-signaling-cost" class="text-3xl font-bold text-teal-600 mt-2">$399.00</p>
+                        <p class="text-sm text-neutral-500 mt-1">Based on PCU</p>
+                    </div>
+                    <div class="bg-neutral-100 p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-neutral-700">Agora Chat</h3>
+                        <p id="agora-chat-cost" class="text-3xl font-bold text-teal-600 mt-2">$349.00</p>
+                        <p class="text-sm text-neutral-500 mt-1">Based on MAU</p>
+                    </div>
+                    <div class="bg-neutral-100 p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-neutral-700">Tencent Chat</h3>
+                        <p id="tencent-chat-cost" class="text-3xl font-bold text-teal-600 mt-2">$399.00</p>
+                        <p class="text-sm text-neutral-500 mt-1">Based on MAU</p>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="cost-chart"></canvas>
+                </div>
+            </section>
+            
+            <section id="pricing-details" class="bg-white p-6 md:p-8 rounded-xl shadow-lg mb-12">
+                <div class="mb-8 text-center">
+                    <h2 class="text-2xl font-bold text-neutral-800 mb-2">Detailed Pricing Models</h2>
+                    <p class="text-neutral-600 max-w-3xl mx-auto">This table provides a side-by-side comparison of the core pricing structures. Understanding the primary billing metric—now correctly showing PCU for Signaling 2.x—free tier limits, and paid models is crucial for making an informed decision.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-neutral-100">
+                                <th class="p-4 text-lg font-semibold border-b-2 border-neutral-200">Service</th>
+                                <th class="p-4 text-lg font-semibold border-b-2 border-neutral-200">Primary Metric</th>
+                                <th class="p-4 text-lg font-semibold border-b-2 border-neutral-200">Free Tier</th>
+                                <th class="p-4 text-lg font-semibold border-b-2 border-neutral-200">Paid Model</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="hover:bg-neutral-50">
+                                <td class="p-4 border-b border-neutral-200 font-semibold text-teal-700">Agora Signaling 2.x</td>
+                                <td class="p-4 border-b border-neutral-200">Peak Concurrent Users (PCU)</td>
+                                <td class="p-4 border-b border-neutral-200">Up to 20 PCU</td>
+                                <td class="p-4 border-b border-neutral-200">Tiered packages: $59/500PCU, $399/2500PCU, $820/5000PCU</td>
+                            </tr>
+                            <tr class="hover:bg-neutral-50">
+                                <td class="p-4 border-b border-neutral-200 font-semibold text-teal-700">Agora Chat</td>
+                                <td class="p-4 border-b border-neutral-200">Monthly Active Users (MAU)</td>
+                                <td class="p-4 border-b border-neutral-200">First 500 MAU free</td>
+                                <td class="p-4 border-b border-neutral-200">Starter: $349/5K MAU (+$0.05/MAU overage); Pro: $699/10K MAU (+$0.05/MAU overage)</td>
+                            </tr>
+                            <tr class="hover:bg-neutral-50">
+                                <td class="p-4 border-b border-neutral-200 font-semibold text-teal-700">Tencent Chat</td>
+                                <td class="p-4 border-b border-neutral-200">Monthly Active Users (MAU)</td>
+                                <td class="p-4 border-b border-neutral-200">Free plan for 100 MAU</td>
+                                <td class="p-4 border-b border-neutral-200">Standard: $399/10K MAU (+$0.015/MAU overage); Pro Plus: $1299/25K MAU (+$0.015/MAU overage)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <section id="feature-comparison" class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                 <div class="mb-8 text-center">
+                    <h2 class="text-2xl font-bold text-neutral-800 mb-2">Feature Comparison: Chat Services</h2>
+                    <p class="text-neutral-600 max-w-3xl mx-auto">While cost is a major factor, the available features are equally important. This section compares the capabilities of Agora Chat and Tencent Chat's Professional plan. Use the tabs to explore different categories of features to see how the services stack up in terms of functionality for one-to-one communication, group dynamics, and administrative control.</p>
+                </div>
+                <div>
+                    <div class="border-b border-neutral-200">
+                        <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                            <button class="tab-btn active text-teal-600 border-teal-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg" data-target="core-features">Core Features</button>
+                            <button class="tab-btn text-neutral-500 hover:text-neutral-700 hover:border-neutral-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg" data-target="group-features">Group Features</button>
+                            <button class="tab-btn text-neutral-500 hover:text-neutral-700 hover:border-neutral-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg" data-target="advanced-features">Advanced</button>
+                        </nav>
+                    </div>
+                    <div class="pt-8">
+                        <div id="core-features" class="tab-content">
+                             <ul class="space-y-4">
+                                <li class="flex items-start"><span class="text-teal-500 mr-3 mt-1">&#10003;</span> <div><span class="font-semibold">Unlimited Messages:</span> Both services offer unlimited messages within their plans.</div></li>
+                                <li class="flex items-start"><span class="text-teal-500 mr-3 mt-1">&#10003;</span> <div><span class="font-semibold">User Profiles & Presence:</span> Both support user profiles and online status tracking.</div></li>
+                                <li class="flex items-start"><span class="text-teal-500 mr-3 mt-1">&#10003;</span> <div><span class="font-semibold">Message History:</span> Both provide message history storage and retrieval.</div></li>
+                                <li class="flex items-start"><span class="text-teal-500 mr-3 mt-1">&#10003;</span> <div><span class="font-semibold">Multi-device Login:</span> Supported by both platforms.</div></li>
+                             </ul>
+                        </div>
+                        <div id="group-features" class="tab-content hidden">
+                            <ul class="space-y-4">
+                                <li class="flex items-start"><span class="text-teal-500 mr-3 mt-1">&#10003;</span> <div><span class="font-semibold">Private & Public Groups:</span> Both allow the creation of different group types.</div></li>
+                                <li class="flex items-start"><span class="text-teal-500 mr-3 mt-1">&#10003;</span> <div><span class="font-semibold">Group Member Management:</span> Both provide APIs for adding, removing, and managing group members.</div></li>
+                                <li class="flex items-start"><span class="text-teal-500 mr-3 mt-1">&#10003;</span> <div><span class="font-semibold">Tencent's Flagship Plan</span> offers advanced features like live group online member lists, which might be critical for large-scale live events.</div></li>
+                             </ul>
+                        </div>
+                        <div id="advanced-features" class="tab-content hidden">
+                           <ul class="space-y-4">
+                                <li class="flex items-start"><span class="text-teal-500 mr-3 mt-1">&#10003;</span> <div><span class="font-semibold">Content Moderation:</span> Both offer solutions for content filtering and moderation.</div></li>
+                                <li class="flex items-start"><span class="text-teal-500 mr-3 mt-1">&#10003;</span> <div><span class="font-semibold">Push Notifications:</span> Both integrate with APNS and FCM for push notifications.</div></li>
+                                 <li class="flex items-start"><span class="text-teal-500 mr-3 mt-1">&#10003;</span> <div><span class="font-semibold">Server-side Integration:</span> Both provide robust REST APIs for backend operations.</div></li>
+                                 <li class="flex items-start"><span class="text-teal-500 mr-3 mt-1">&#10003;</span> <div><span class="font-semibold">Data & Analytics:</span> Both offer dashboards for usage monitoring.</div></li>
+                           </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+             <section id="summary" class="text-center pt-6">
+                <h2 class="text-2xl font-bold text-neutral-800 mb-2">Key Takeaways</h2>
+                <div class="max-w-4xl mx-auto space-y-4 text-neutral-600">
+                    <p><strong class="text-neutral-700">Agora Signaling 2.x</strong> is ideal for applications needing real-time presence and lightweight messaging, where the critical metric is the number of simultaneous online users (PCU). Its cost scales directly with peak concurrency, making it suitable for apps with high engagement but not necessarily a massive total user base.</p>
+                    <p><strong class="text-neutral-700">Agora Chat</strong> offers a simple, pay-as-you-go model based on monthly active users (MAU). It's excellent for startups and projects with unpredictable growth, as costs are easy to predict and scale linearly with the overall user base, regardless of how many are online at once.</p>
+                    <p><strong class="text-neutral-700">Tencent Chat</strong> is geared towards more established applications that can justify a monthly base fee. Its Professional plan becomes highly cost-effective at larger MAU scales (approaching 10,000 MAU) and offers a comprehensive, feature-rich platform for a fixed price.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const mauSlider = document.getElementById('mau-slider');
+        const pcuSlider = document.getElementById('pcu-slider');
+        const mauValue = document.getElementById('mau-value');
+        const pcuValue = document.getElementById('pcu-value');
+        
+        const agoraSignalingCostEl = document.getElementById('agora-signaling-cost');
+        const agoraChatCostEl = document.getElementById('agora-chat-cost');
+        const tencentChatCostEl = document.getElementById('tencent-chat-cost');
+
+        const formatCurrency = (value) => {
+            return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+        };
+        
+        const formatNumber = (value) => {
+            if (value >= 1000000) {
+                return (value / 1000000).toFixed(1) + 'M';
+            }
+            if (value >= 1000) {
+                return (value / 1000).toFixed(0) + 'k';
+            }
+            return value.toString();
+        }
+
+        function calculateAgoraSignalingCost(pcu) {
+            if (pcu <= 20) { // Free Package
+                return 0;
+            } else if (pcu <= 500) { // Starter Package
+                return 59;
+            } else if (pcu <= 2500) { // Pro Package
+                return 399;
+            } else if (pcu <= 5000) { // Business Package
+                return 820;
+            } else { // Beyond Business, Enterprise is "Contact Sales". Cap at Business Package cost for calculator.
+                return 820; 
+            }
+        }
+
+        function calculateAgoraChatCost(mau) {
+            if (mau <= 500) { // Free plan: up to 500 MAU
+                return 0;
+            }
+
+            let cost = 0;
+            // Starter plan: From $349 per month, supports up to 50,000 MAU, with an additional charge of $0.05 per MAU beyond 5,000 MAU.
+            // Pro plan: Beginning at $699 per month, supports up to 100,000 MAU, with an additional charge of $0.05 per MAU beyond 10,000 MAU.
+
+            if (mau <= 5000) { // MAU is between 501 and 5000, fits in Starter's included MAU
+                cost = 349;
+            } else if (mau <= 10000) { // MAU is between 5001 and 10000, Starter with overage is cheaper than Pro base
+                cost = 349 + (mau - 5000) * 0.05;
+            } else if (mau <= 100000) { // MAU is between 10001 and 100000, Pro with overage
+                cost = 699 + (mau - 10000) * 0.05; 
+            } else { // MAU > 100,000, Enterprise is custom. Extrapolate with Pro's overage.
+                cost = 699 + (mau - 10000) * 0.05;
+            }
+            return cost;
+        }
+
+        function calculateTencentChatCost(mau) {
+            if (mau <= 100) { // Free Trial Plan
+                return 0;
+            }
+
+            const overageRate = 0.015;
+
+            // Calculate cost if staying on Standard plan with overage
+            let costStandardOverage = 399 + Math.max(0, mau - 10000) * overageRate;
+
+            // Calculate cost if on Pro Plus plan (base + overage if applicable)
+            let costProPlus = 1299;
+            if (mau > 25000) {
+                costProPlus += (mau - 25000) * overageRate;
+            }
+
+            // For MAU up to 10000, Standard is the base.
+            if (mau <= 10000) {
+                return 399;
+            }
+            // For MAU > 10000, return the minimum of Standard + overage vs Pro Plus base/overage
+            return Math.min(costStandardOverage, costProPlus);
+        }
+
+        let costChart;
+
+        function updateCosts() {
+            const mau = parseInt(mauSlider.value);
+            const pcu = parseInt(pcuSlider.value);
+
+            mauValue.textContent = formatNumber(mau);
+            pcuValue.textContent = formatNumber(pcu);
+
+            const costs = {
+                agoraSignaling: calculateAgoraSignalingCost(pcu),
+                agoraChat: calculateAgoraChatCost(mau),
+                tencentChat: calculateTencentChatCost(mau),
+            };
+
+            agoraSignalingCostEl.textContent = formatCurrency(costs.agoraSignaling);
+            agoraChatCostEl.textContent = formatCurrency(costs.agoraChat);
+            tencentChatCostEl.textContent = formatCurrency(costs.tencentChat);
+            
+            updateChart([costs.agoraSignaling, costs.agoraChat, costs.tencentChat]);
+        }
+        
+        function initChart() {
+            const ctx = document.getElementById('cost-chart').getContext('2d');
+            costChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Agora Signaling 2.x', 'Agora Chat', 'Tencent Chat'],
+                    datasets: [{
+                        label: 'Estimated Monthly Cost',
+                        data: [0, 0, 0],
+                        backgroundColor: [
+                            'rgba(14, 116, 144, 0.6)', 
+                            'rgba(15, 118, 110, 0.6)',
+                            'rgba(17, 94, 89, 0.6)'    
+                        ],
+                        borderColor: [
+                            'rgb(14, 116, 144)',
+                            'rgb(15, 118, 110)',
+                            'rgb(17, 94, 89)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += formatCurrency(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateChart(data) {
+            if (costChart) {
+                costChart.data.datasets[0].data = data;
+                costChart.update();
+            }
+        }
+        
+        const tabs = document.querySelectorAll('.tab-btn');
+        const contents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(item => {
+                    item.classList.remove('active', 'text-teal-600', 'border-teal-600');
+                    item.classList.add('text-neutral-500', 'hover:text-neutral-700', 'hover:border-neutral-300');
+                });
+                tab.classList.add('active', 'text-teal-600', 'border-teal-600');
+                tab.classList.remove('text-neutral-500', 'hover:text-neutral-700', 'hover:border-neutral-300');
+                
+                const target = document.getElementById(tab.dataset.target);
+                
+                contents.forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                if (target) {
+                    target.classList.remove('hidden');
+                }
+            });
+        });
+
+        mauSlider.addEventListener('input', updateCosts);
+        pcuSlider.addEventListener('input', updateCosts);
+
+        window.onload = () => {
+            initChart();
+            updateCosts();
+        };
+
+    </script>
+</body>
+</html>
