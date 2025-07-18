@@ -224,6 +224,13 @@
         }
 
         function calculateAgoraSignalingCost(pcu) {
+            // Pricing Structure:
+            // - Free Package: Up to 20 PCU
+            // - Starter Package: $59 for up to 500 PCU
+            // - Pro Package: $399 for up to 2500 PCU
+            // - Business Package: $820 for up to 5000 PCU
+            // - Overcharge: $30 per 1000 PCU beyond package limit
+            
             if (pcu <= 20) { // Free Package
                 return 0;
             } else if (pcu <= 500) { // Starter Package
@@ -232,8 +239,11 @@
                 return 399;
             } else if (pcu <= 5000) { // Business Package
                 return 820;
-            } else { // Beyond Business, Enterprise is "Contact Sales". Cap at Business Package cost for calculator.
-                return 820; 
+            } else { // Beyond Business Package - Calculate overcharge
+                const overPcu = pcu - 5000;
+                const overchargeRate = 30 / 1000; // $30 per 1000 PCU
+                const overcharge = Math.ceil(overPcu * overchargeRate);
+                return 820 + overcharge; // Base Business Package + Overcharge
             }
         }
 
